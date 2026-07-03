@@ -1,0 +1,1 @@
+- [Filesystem MCP Server Fix](fix-memory.md) — Fixed import path for McpServer from "@modelcontextprotocol/sdk/server/mcp" to "@modelcontextprotocol/sdk/server"

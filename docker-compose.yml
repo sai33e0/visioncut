@@ -1,0 +1,171 @@
+version: "3.9"
+
+# VisionCut AI — local development stack
+# Brings up: postgres+pgvector, redis, supabase studio (optional), and the API/workers.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: visioncut-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "54322:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: visioncut-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Optional: full Supabase local stack (auth, storage, studio).
+  # Uncomment `supabase start` locally to bring this up; otherwise rely on
+  # the postgres container above with Prisma + manual R2 fallback.
+  # supabase:
+  #   image: supabase/supabase-cli:latest
+  #   ...
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: visioncut-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+      REFERENCE_ANALYZER_URL: http://reference-analyzer:8001
+      CLIP_ANALYZER_URL: http://clip-analyzer:8002
+      TIMELINE_BUILDER_URL: http://timeline-builder:8003
+      RENDERER_URL: http://renderer:8004
+      STYLE_ENGINE_URL: http://style-engine:8005
+      FEEDBACK_ENGINE_URL: http://feedback-engine:8006
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-change-me-please-32chars}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+
+  reference-analyzer:
+    build:
+      context: ./workers
+      dockerfile: reference_analyzer.Dockerfile
+    container_name: visioncut-reference-analyzer
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+
+  clip-analyzer:
+    build:
+      context: ./workers
+      dockerfile: clip_analyzer.Dockerfile
+    container_name: visioncut-clip-analyzer
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+
+  timeline-builder:
+    build:
+      context: ./workers
+      dockerfile: timeline_builder.Dockerfile
+    container_name: visioncut-timeline-builder
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+
+  renderer:
+    build:
+      context: ./workers
+      dockerfile: renderer.Dockerfile
+    container_name: visioncut-renderer
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./storage:/app/storage
+
+  style-engine:
+    build:
+      context: ./workers
+      dockerfile: style_engine.Dockerfile
+    container_name: visioncut-style-engine
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  feedback-engine:
+    build:
+      context: ./workers
+      dockerfile: feedback_engine.Dockerfile
+    container_name: visioncut-feedback-engine
+    restart: unless-stopped
+    ports:
+      - "8006:8006"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgres
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

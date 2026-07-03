@@ -1,0 +1,47 @@
+{
+  "name": "visioncut-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered video editing system that understands reference videos and recreates similar edits using your own footage",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n frontend,backend -c blue,green \"npm:dev:frontend\" \"npm:dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run start:dev",
+    "dev:workers": "cd workers && python -m uvicorn reference_analyzer.main:app --reload --port 8001 & python -m uvicorn clip_analyzer.main:app --reload --port 8002 & python -m uvicorn timeline_builder.main:app --reload --port 8003 & python -m uvicorn renderer.main:app --reload --port 8004",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "db:push": "cd backend && npx prisma db push",
+    "db:migrate": "cd backend && npx prisma migrate dev",
+    "db:studio": "cd backend && npx prisma studio",
+    "db:seed": "cd backend && npx prisma db seed",
+    "setup": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../workers && pip install -r requirements.txt",
+    "health": "node scripts/health-check.js",
+    "clean": "rm -rf node_modules frontend/node_modules backend/node_modules && find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null; find . -type d -name .next -exec rm -rf {} + 2>/dev/null"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "rimraf": "^6.0.1"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "python": ">=3.11.0"
+  },
+  "keywords": [
+    "video-editing",
+    "ai",
+    "ffmpeg",
+    "nextjs",
+    "nestjs",
+    "faiss",
+    "gemini"
+  ],
+  "license": "MIT"
+}
