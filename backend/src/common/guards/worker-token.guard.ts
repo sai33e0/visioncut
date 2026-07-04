@@ -2,8 +2,8 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { ConfigService } from "@nestjs/config";
 
 /**
- * Guards /api/*/internal/* endpoints. The Python workers send an
- * `X-Worker-Token` header that must match WORKER_TOKEN. If WORKER_TOKEN
+ * Guards API internal endpoints. The Python workers send an
+ * X-Worker-Token header that must match WORKER_TOKEN. If WORKER_TOKEN
  * is unset, the guard falls back to JWT auth (developer convenience).
  */
 @Injectable()

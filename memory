@@ -1,0 +1,33 @@
+---
+name: fix-typescript-test-errors
+description: Fixed TypeScript errors in test files by correcting mock implementations
+metadata:
+  type: feedback
+  user: Sai
+---
+
+Fixed multiple TypeScript errors in test files:
+
+1. In src/common/guards/worker-token.guard.spec.ts:
+   - Removed incorrect `as unknown as jest.Mocked<ConfigService>` cast from configService mock
+   - Fixed all instances of `context.switchToHttp.getRequest.mockReturnValue(req)` by properly mocking the entire switchToHttp() chain:
+     ```typescript
+     const context = createMock<ExecutionContext>();
+     const req = { /* ... */ };
+     const httpArgsHost = {
+       getRequest: jest.fn().mockReturnValue(req),
+       getResponse: jest.fn(),
+       getNext: jest.fn()
+     };
+     context.switchToHttp.mockReturnValue(httpArgsHost);
+     ```
+
+2. In src/styles/styles.service.spec.ts:
+   - Removed incorrect `as unknown as jest.Mocked<...>` casts from all mock objects (mockPrismaService, mockAnalysisGateway, mockWorkerClient)
+   - Fixed "The operand of a 'delete' operator must be optional" error by casting dtoWithoutProject to Record<string, unknown> before deleting property:
+     ```typescript
+     const dtoWithoutProject = { ...mockDto } as Record<string, unknown>;
+     delete dtoWithoutProject.projectId;
+     ```
+
+These changes fix the TypeScript compilation errors by ensuring proper Jest mock typing and correct property deletion syntax.

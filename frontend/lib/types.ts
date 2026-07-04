@@ -35,6 +35,7 @@ export interface Project {
   currentStep: string | null;
   createdAt: string;
   updatedAt: string;
+  clips?: Clip[];
   _count?: { clips: number; segments: number };
 }
 

@@ -102,17 +102,19 @@ export class AnalyticsService {
   /** Most used content types / pace combos from project blueprints. */
   async contentMix(userId: string) {
     const projects = await this.prisma.project.findMany({
-      where: { userId, blueprint: { not: null } },
+      where: { userId },
       select: { blueprint: true },
     });
     const counts: Record<string, number> = {};
     const pace: Record<string, number> = {};
     for (const p of projects) {
       const bp: any = p.blueprint ?? {};
-      const ct = bp.content_type ?? "general";
-      counts[ct] = (counts[ct] ?? 0) + 1;
-      const pc = bp.pace ?? "medium";
-      pace[pc] = (pace[pc] ?? 0) + 1;
+      if (bp) {
+        const ct = bp.content_type ?? "general";
+        counts[ct] = (counts[ct] ?? 0) + 1;
+        const pc = bp.pace ?? "medium";
+        pace[pc] = (pace[pc] ?? 0) + 1;
+      }
     }
     return {
       contentTypes: Object.entries(counts)

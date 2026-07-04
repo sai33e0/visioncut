@@ -11,7 +11,7 @@
     "dev": "concurrently -k -n frontend,backend -c blue,green \"npm:dev:frontend\" \"npm:dev:backend\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run start:dev",
-    "dev:workers": "cd workers && python -m uvicorn reference_analyzer.main:app --reload --port 8001 & python -m uvicorn clip_analyzer.main:app --reload --port 8002 & python -m uvicorn timeline_builder.main:app --reload --port 8003 & python -m uvicorn renderer.main:app --reload --port 8004",
+    "dev:workers": "cd workers && python -m uvicorn reference_analyzer.main:app --reload --port 8001 & python -m uvicorn clip_analyzer.main:app --reload --port 8002 & python -m uvicorn timeline_builder.main:app --reload --port 8003 & python -m uvicorn renderer.main:app --reload --port 8004 & python -m uvicorn style_engine.main:app --reload --port 8005 & python -m uvicorn feedback_engine.main:app --reload --port 8006",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",

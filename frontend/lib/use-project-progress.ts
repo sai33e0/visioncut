@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import io from "socket.io-client";
 import { API_URL } from "./api";
 import type { LogEvent, ProgressEvent } from "./types";
 
@@ -24,7 +24,7 @@ export function useProjectProgress(projectId: string | null | undefined): Projec
     logs: [],
     connected: false,
   });
-  const socketRef = useRef<Socket | null>(null);
+  const socketRef = useRef<ReturnType<typeof io> | null>(null);
 
   useEffect(() => {
     if (!projectId) return;

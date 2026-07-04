@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { CreateStyleDto } from "./dto/create-style.dto";
 import { AnalysisGateway } from "../websocket/analysis.gateway";
 import { WorkerClient } from "../common/clients/worker.client";
+import { Prisma } from "@prisma/client";
 
 @Injectable()
 export class StylesService {
@@ -47,31 +48,22 @@ export class StylesService {
       throw new BadRequestException("Provide blueprintTemplate or a projectId");
     }
 
-    // Vectorize via the Python style engine
-    let styleVector: number[] | undefined = dto.styleVector;
-    if (!styleVector || styleVector.length === 0) {
-      try {
-        const res = await this.workers.vectorizeBlueprint(blueprint);
-        styleVector = res?.style_vector;
-      } catch (e: any) {
-        // Non-fatal: store without vector, the worker can re-vectorize later
-      }
-    }
-
+    // Create the style without the vector (the worker can compute and store it asynchronously)
     const style = await this.prisma.style.create({
       data: {
         userId,
         name: dto.name,
         description: dto.description,
-        contentType: dto.contentType ?? blueprint?.content_type ?? null,
-        pace: dto.pace ?? blueprint?.pace ?? null,
-        transitions: dto.transitions ?? blueprint?.transitions ?? null,
-        audioComponents: dto.audioComponents ?? blueprint?.audio ?? null,
+        contentType: dto.contentType ?? null,
+        pace: dto.pace ?? null,
+        transitions: dto.transitions ?? [],
+        audioComponents: dto.audioComponents ?? [],
         blueprintTemplate: blueprint,
-        styleVector: styleVector as any,
         isPublic: dto.isPublic ?? false,
+        usageCount: 0,
       },
     });
+
     await this.prisma.analyticsEvent.create({
       data: { userId, projectId: dto.projectId, eventType: "style_saved", payload: { styleId: style.id } as any },
     });
@@ -120,7 +112,7 @@ export class StylesService {
     });
   }
 
-  /** Apply a saved style: copies blueprint + style vector to the project. */
+  /** Apply a saved style: copies blueprint to the project. */
   async apply(userId: string, styleId: string, projectId: string) {
     const style = await this.prisma.style.findFirst({
       where: { id: styleId, OR: [{ userId }, { isPublic: true }] },
@@ -133,16 +125,15 @@ export class StylesService {
     await this.prisma.project.update({
       where: { id: projectId },
       data: {
-        blueprint: (style.blueprintTemplate as any) ?? undefined,
-        styleVector: (style.styleVector as any) ?? undefined,
+        blueprint: style.blueprintTemplate ?? Prisma.JsonNull,
         status: "analyzing",
         progress: 50,
         currentStep: "Style applied — building timeline",
-      } as any,
+      },
     });
     await this.prisma.style.update({ where: { id: styleId }, data: { usageCount: { increment: 1 } } });
     await this.prisma.analyticsEvent.create({
-      data: { userId, projectId, eventType: "style_applied", payload: { styleId } as any },
+      data: { userId, projectId: projectId, eventType: "style_applied", payload: { styleId } as any },
     });
     this.gateway.emitLog(projectId, `Style applied: ${style.name}`);
 

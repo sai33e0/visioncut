@@ -2,7 +2,6 @@ import { Inject, Injectable, UnauthorizedException, ConflictException } from "@n
 import { JwtService } from "@nestjs/jwt";
 import { hash, compare } from "bcryptjs";
 import { PrismaService } from "../prisma/prisma.service";
-import { PRISMA } from "../prisma/prisma.module";
 import { PrismaClient, User } from "@prisma/client";
 import { RegisterDto } from "./dto/register.dto";
 import { LoginDto } from "./dto/login.dto";
@@ -10,7 +9,7 @@ import { LoginDto } from "./dto/login.dto";
 @Injectable()
 export class AuthService {
   constructor(
-    @Inject(PRISMA) private readonly prisma: PrismaClient,
+    private readonly prisma: PrismaService,
     private readonly jwt: JwtService
   ) {}
 
